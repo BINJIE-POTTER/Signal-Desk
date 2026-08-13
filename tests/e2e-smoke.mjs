@@ -30,8 +30,14 @@ try {
 
   await page.getByRole("heading", { name: "数据总览" }).waitFor();
   await page.getByText("表现最佳视频").waitFor();
-  const firstTitle = page.locator("tbody tr").first().locator("td").first().locator("span").first();
-  await firstTitle.hover();
+  await page.getByText("本次观察").waitFor();
+  if (await page.locator(".recharts-wrapper").count())
+    throw new Error("Overview should not repeat trend charts");
+  const overviewTooltipTarget = page
+    .locator("main")
+    .getByText(/和解剖了|第23集|峰哥/)
+    .first();
+  await overviewTooltipTarget.hover();
   await page.getByRole("tooltip").waitFor();
   await page.screenshot({ path: "/private/tmp/douyin-monitor-shadcn-overview.png", fullPage: true });
 
@@ -62,11 +68,22 @@ try {
   await page.screenshot({ path: "/private/tmp/douyin-monitor-shadcn-trends.png", fullPage: true });
 
   await page.getByRole("button", { name: /^视频/ }).click();
+  if ((await page.getByLabel("每页显示数量").textContent())?.trim() !== "50") {
+    throw new Error("Tables must default to 50 rows per page");
+  }
+  await page.getByText(/显示 1–50，共/).waitFor();
+  await page.getByLabel("下一页").click();
+  await page.getByText(/显示 51–/).waitFor();
+  await page.getByLabel("上一页").click();
   await page.getByPlaceholder("搜索视频标题或账号").fill("峰哥");
   await page.getByLabel("视频排序").click();
   await page.getByRole("option", { name: "按点赞" }).click();
   await page.getByLabel("筛选视频账号").click();
   await page.getByRole("option").nth(1).click();
+  await page.getByLabel("每页显示数量").click();
+  await page.getByRole("option", { name: "25" }).click();
+  await page.getByText(/显示 1–21，共 21 条|显示 1–25/).waitFor();
+  await page.locator("main").evaluate((element) => element.scrollTo({ top: 0 }));
   await page.screenshot({ path: "/private/tmp/douyin-monitor-shadcn-videos.png", fullPage: true });
 
   await page.getByRole("button", { name: /^账号/ }).click();

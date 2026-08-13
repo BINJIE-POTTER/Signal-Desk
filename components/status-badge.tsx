@@ -15,9 +15,9 @@ const labels: Record<string, string> = {
 export function StatusBadge({ status }: { status: string }) {
   const variant =
     status === "success" || status === "active"
-      ? "default"
+      ? "success"
       : status === "partial" || status === "running" || status === "pending"
-        ? "secondary"
+        ? "warning"
         : "destructive";
   return <Badge variant={variant}>{labels[status] ?? status}</Badge>;
 }

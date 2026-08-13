@@ -19,7 +19,7 @@ export default async function LoginPage() {
           <h1 className="font-display text-6xl font-semibold leading-[.96] tracking-tight">
             每周一次，
             <br />
-            <span className="text-[#ff7a52]">看见变化。</span>
+            <span className="text-primary">看见变化。</span>
           </h1>
           <p className="mt-7 max-w-md text-base leading-7 text-background/60">
             追踪近 90 天公开作品，把分散的页面数字变成可审计、可比较的周度信号。
@@ -33,7 +33,7 @@ export default async function LoginPage() {
               const I = Icon as typeof Eye;
               return (
                 <div className="border-t border-background/20 pt-4" key={String(label)}>
-                  <I className="mb-2 size-4 text-[#ff7a52]" />
+                  <I className="mb-2 size-4 text-primary" />
                   <span className="text-xs text-background/60">{String(label)}</span>
                 </div>
               );

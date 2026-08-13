@@ -1,8 +1,10 @@
 "use client";
 
-import { useMemo, useState, type ComponentType, type ReactNode } from "react";
+import { useMemo, useRef, useState, type ComponentType, type ReactNode } from "react";
 import {
   Activity,
+  ArrowDownRight,
+  ArrowUpRight,
   BarChart3,
   Bookmark,
   ChevronDown,
@@ -23,6 +25,7 @@ import {
   Share2,
   Trash2,
   TriangleAlert,
+  Trophy,
   Users,
 } from "lucide-react";
 import {
@@ -33,12 +36,12 @@ import {
   triggerCollectorAction,
 } from "@/app/actions";
 import {
-  AccountRankingChart,
   HistoryChart,
   VideoRankingChart,
   metricChartConfig,
   type MetricDataKey,
 } from "@/components/dashboard-charts";
+import { DataTablePagination, DEFAULT_PAGE_SIZE } from "@/components/data-table-pagination";
 import { StatusBadge } from "@/components/status-badge";
 import {
   AlertDialog,
@@ -205,7 +208,7 @@ function MetricValue({ value, label }: { value: number | null; label: string }) 
 
 function Rail({ view, setView, username }: { view: View; setView: (view: View) => void; username: string }) {
   return (
-    <aside className="flex h-screen w-60 shrink-0 flex-col border-r bg-muted/20 p-4">
+    <aside className="flex h-screen w-60 shrink-0 flex-col border-r bg-muted/20 p-6">
       <div className="flex items-center gap-2 px-2 py-2">
         <div className="flex size-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
           <Activity className="size-4" />
@@ -267,7 +270,7 @@ function PageHeader({ view, lastRun }: { view: View; lastRun: string | null }) {
         <h1 className="text-lg font-semibold tracking-tight">{titles[view][0]}</h1>
         <p className="truncate text-sm text-muted-foreground">{titles[view][1]}</p>
       </div>
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-4">
         <Tooltip>
           <TooltipTrigger asChild>
             <span className="text-xs text-muted-foreground">最近采集 {formatDate(lastRun, true)}</span>
@@ -287,7 +290,7 @@ function PageHeader({ view, lastRun }: { view: View; lastRun: string | null }) {
 
 function MetricCards({ summary, totals }: { summary: Summary; totals: Record<MetricDataKey, number> }) {
   return (
-    <div className="grid grid-cols-4 gap-4">
+    <div className="grid grid-cols-4 gap-6">
       {metrics.map(({ key, dataKey, label, icon: Icon, help }) => (
         <Card key={key}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -313,6 +316,35 @@ function MetricCards({ summary, totals }: { summary: Summary; totals: Record<Met
   );
 }
 
+function TopVideoList({ videos }: { videos: ReturnType<typeof toVideoPoint>[] }) {
+  const topVideos = videos
+    .slice()
+    .sort((left, right) => right.likes - left.likes)
+    .slice(0, 5);
+  return (
+    <div className="divide-y">
+      {topVideos.map((video, index) => (
+        <div className="flex items-center gap-4 py-3 first:pt-0 last:pb-0" key={video.id}>
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-sm font-semibold text-primary">
+            {index + 1}
+          </div>
+          <div className="min-w-0 flex-1">
+            <TextWithTooltip className="block truncate text-sm font-medium">{video.title}</TextWithTooltip>
+            <div className="mt-1 flex items-center gap-2">
+              <AccountBadge name={video.accountName} />
+              <span className="text-xs text-muted-foreground">{formatDate(video.publishedAt)}</span>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="font-mono text-sm font-semibold tabular-nums">{formatCompact(video.likes)}</p>
+            <p className="text-xs text-muted-foreground">点赞</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function OverviewPanel({
   summary,
   accountPerformance,
@@ -330,53 +362,88 @@ function OverviewPanel({
     },
     { likes: 0, collects: 0, comments: 0, shares: 0 } as Record<MetricDataKey, number>,
   );
+  const strongestAccount = accountPerformance[0];
+  const deltaItems = metrics
+    .map((metric) => ({ ...metric, delta: summary.deltas[metric.key] }))
+    .sort((left, right) => Math.abs(right.delta) - Math.abs(left.delta));
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <MetricCards summary={summary} totals={totals} />
-      <div className="grid grid-cols-[minmax(0,1fr)_320px] gap-4">
+      <div className="grid grid-cols-[minmax(0,1.4fr)_minmax(360px,1fr)] gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>账号表现</CardTitle>
-            <CardDescription>近 90 天视频的当前点赞总量</CardDescription>
+            <CardTitle className="flex items-center gap-2">
+              <Trophy className="size-4 text-primary" />
+              表现最佳视频
+            </CardTitle>
+            <CardDescription>近 90 天按当前点赞排序，快速发现值得关注的内容</CardDescription>
           </CardHeader>
           <CardContent>
-            <AccountRankingChart
-              data={accountPerformance.map((item) => ({
-                nickname: String(item.nickname),
-                likes: Number(item.likes),
-              }))}
-            />
+            <TopVideoList videos={latestVideos} />
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>采集状态</CardTitle>
-            <CardDescription>最近一次任务的数据可用率</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-end justify-between">
-              <p className="text-3xl font-bold tabular-nums">{summary.successRate}%</p>
-              <StatusBadge status={summary.latestRunStatus} />
-            </div>
-            <Progress value={summary.successRate} className="mt-4" />
-            <div className="mt-6 grid grid-cols-3 gap-2 border-t pt-4 text-center">
-              <div>
-                <p className="font-semibold tabular-nums">{summary.enabledAccounts}</p>
-                <p className="text-xs text-muted-foreground">账号</p>
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>采集状态</CardTitle>
+              <CardDescription>最近一次任务的数据可用率</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-end justify-between">
+                <p className="text-3xl font-bold tabular-nums">{summary.successRate}%</p>
+                <StatusBadge status={summary.latestRunStatus} />
               </div>
-              <div>
-                <p className="font-semibold tabular-nums">{summary.trackedVideos}</p>
-                <p className="text-xs text-muted-foreground">视频</p>
+              <Progress value={summary.successRate} className="mt-4" />
+              <div className="mt-6 grid grid-cols-3 gap-4 border-t pt-4 text-center">
+                <div>
+                  <p className="font-semibold tabular-nums">{summary.enabledAccounts}</p>
+                  <p className="text-xs text-muted-foreground">账号</p>
+                </div>
+                <div>
+                  <p className="font-semibold tabular-nums">{summary.trackedVideos}</p>
+                  <p className="text-xs text-muted-foreground">视频</p>
+                </div>
+                <div>
+                  <p className="font-semibold tabular-nums">{summary.newVideos}</p>
+                  <p className="text-xs text-muted-foreground">新发现</p>
+                </div>
               </div>
-              <div>
-                <p className="font-semibold tabular-nums">{summary.newVideos}</p>
-                <p className="text-xs text-muted-foreground">新发现</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>本次观察</CardTitle>
+              <CardDescription>
+                {strongestAccount ? `${String(strongestAccount.nickname)} 当前账号点赞领先` : "等待账号数据"}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {deltaItems.slice(0, 3).map((item) => {
+                const positive = item.delta >= 0;
+                const DeltaIcon = positive ? ArrowUpRight : ArrowDownRight;
+                return (
+                  <div className="flex items-center justify-between" key={item.key}>
+                    <span className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <item.icon className="size-4" />
+                      {item.label}
+                    </span>
+                    <span
+                      className={
+                        positive
+                          ? "flex items-center gap-1 text-sm font-medium text-success"
+                          : "flex items-center gap-1 text-sm font-medium text-destructive"
+                      }
+                    >
+                      <DeltaIcon className="size-4" />
+                      {summary.hasComparison ? formatDelta(item.delta) : "等待对比"}
+                    </span>
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
+        </div>
       </div>
-      <VideoTable videos={videos} compact />
     </div>
   );
 }
@@ -433,9 +500,9 @@ function TrendsPanel({ trends, videos, accounts }: { trends: Trend[]; videos: Ro
   const leadingVideo = videoPoints.slice().sort((a, b) => b[metricKey] - a[metricKey])[0];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <Card>
-        <CardContent className="flex items-center justify-between gap-4 p-4">
+        <CardContent className="flex items-center justify-between gap-4 p-6">
           <div className="flex items-center gap-2">
             <Select value={accountId} onValueChange={setAccountId}>
               <SelectTrigger className="w-48" aria-label="筛选账号">
@@ -474,7 +541,7 @@ function TrendsPanel({ trends, videos, accounts }: { trends: Trend[]; videos: Ro
         type="single"
         value={metricKey}
         onValueChange={(value) => value && setMetricKey(value as MetricDataKey)}
-        className="grid grid-cols-4 gap-4"
+        className="grid grid-cols-4 gap-6"
       >
         {metrics.map((item) => (
           <ToggleGroupItem
@@ -482,7 +549,7 @@ function TrendsPanel({ trends, videos, accounts }: { trends: Trend[]; videos: Ro
             value={item.dataKey}
             className="h-auto justify-start border p-0 text-left data-[state=on]:border-foreground data-[state=on]:bg-background"
           >
-            <div className="w-full p-4">
+            <div className="w-full p-6">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">{item.label}</span>
                 <item.icon className="size-4 text-muted-foreground" />
@@ -566,12 +633,17 @@ function DeleteAccountDialog({ account }: { account: Row }) {
 }
 
 function AccountsPanel({ accounts, accountPerformance }: { accounts: Row[]; accountPerformance: Row[] }) {
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const trackedById = useMemo(
     () => new Map(accountPerformance.map((item) => [Number(item.id), Number(item.trackedVideos)])),
     [accountPerformance],
   );
+  const pageCount = Math.max(1, Math.ceil(accounts.length / pageSize));
+  const safePage = Math.min(page, pageCount);
+  const paginatedAccounts = accounts.slice((safePage - 1) * pageSize, safePage * pageSize);
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle>添加账号</CardTitle>
@@ -605,7 +677,7 @@ function AccountsPanel({ accounts, accountPerformance }: { accounts: Row[]; acco
               </TableRow>
             </TableHeader>
             <TableBody>
-              {accounts.map((account) => (
+              {paginatedAccounts.map((account) => (
                 <TableRow key={String(account.id)}>
                   <TableCell className="max-w-64 pl-6">
                     <div className="flex min-w-0 items-center gap-2">
@@ -660,6 +732,13 @@ function AccountsPanel({ accounts, accountPerformance }: { accounts: Row[]; acco
               ))}
             </TableBody>
           </Table>
+          <DataTablePagination
+            page={safePage}
+            pageSize={pageSize}
+            totalItems={accounts.length}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
         </CardContent>
       </Card>
     </div>
@@ -671,6 +750,8 @@ function VideoTable({ videos, compact = false }: { videos: Row[]; compact?: bool
   const [period, setPeriod] = useState("90");
   const [sortKey, setSortKey] = useState<SortKey>(compact ? "likes" : "publishedAt");
   const [accountId, setAccountId] = useState("all");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const accounts = useMemo(
     () => [...new Map(videos.map((video) => [String(video.accountId), String(video.accountName)])).entries()],
     [videos],
@@ -694,7 +775,11 @@ function VideoTable({ videos, compact = false }: { videos: Row[]; compact?: bool
           : Number(right[sortKey] ?? 0) - Number(left[sortKey] ?? 0),
       );
   }, [accountId, period, query, sortKey, videos]);
-  const rows = compact ? visibleVideos.slice(0, 6) : visibleVideos;
+  const pageCount = Math.max(1, Math.ceil(visibleVideos.length / pageSize));
+  const safePage = Math.min(page, pageCount);
+  const rows = compact
+    ? visibleVideos.slice(0, 6)
+    : visibleVideos.slice((safePage - 1) * pageSize, safePage * pageSize);
   const sortLabel = sortKey === "publishedAt" ? "发布时间" : metricChartConfig[sortKey].label;
 
   return (
@@ -716,18 +801,27 @@ function VideoTable({ videos, compact = false }: { videos: Row[]; compact?: bool
         )}
       </CardHeader>
       {compact ? null : (
-        <div className="flex items-center justify-between gap-3 border-y bg-muted/20 px-6 py-3">
+        <div className="flex items-center justify-between gap-4 border-y bg-muted/20 px-6 py-4">
           <div className="relative w-80">
             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={query}
-              onChange={(event) => setQuery(event.target.value)}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setPage(1);
+              }}
               placeholder="搜索视频标题或账号"
               className="pl-9"
             />
           </div>
           <div className="flex items-center gap-2">
-            <Select value={accountId} onValueChange={setAccountId}>
+            <Select
+              value={accountId}
+              onValueChange={(value) => {
+                setAccountId(value);
+                setPage(1);
+              }}
+            >
               <SelectTrigger className="w-40" aria-label="筛选视频账号">
                 <SelectValue placeholder="全部账号" />
               </SelectTrigger>
@@ -740,7 +834,13 @@ function VideoTable({ videos, compact = false }: { videos: Row[]; compact?: bool
                 ))}
               </SelectContent>
             </Select>
-            <Select value={period} onValueChange={setPeriod}>
+            <Select
+              value={period}
+              onValueChange={(value) => {
+                setPeriod(value);
+                setPage(1);
+              }}
+            >
               <SelectTrigger className="w-36" aria-label="发布时间范围">
                 <SelectValue />
               </SelectTrigger>
@@ -852,7 +952,16 @@ function VideoTable({ videos, compact = false }: { videos: Row[]; compact?: bool
           </TableBody>
         </Table>
         {compact ? null : (
-          <div className="border-t px-6 py-3 text-xs text-muted-foreground">当前按{sortLabel}降序排列</div>
+          <>
+            <div className="border-t px-6 py-4 text-xs text-muted-foreground">当前按{sortLabel}降序排列</div>
+            <DataTablePagination
+              page={safePage}
+              pageSize={pageSize}
+              totalItems={visibleVideos.length}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+            />
+          </>
         )}
       </CardContent>
     </Card>
@@ -860,8 +969,13 @@ function VideoTable({ videos, compact = false }: { videos: Row[]; compact?: bool
 }
 
 function SystemPanel({ runs, errors }: { runs: Row[]; errors: Row[] }) {
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const pageCount = Math.max(1, Math.ceil(runs.length / pageSize));
+  const safePage = Math.min(page, pageCount);
+  const paginatedRuns = runs.slice((safePage - 1) * pageSize, safePage * pageSize);
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)_380px] gap-4">
+    <div className="grid grid-cols-[minmax(0,1fr)_380px] gap-6">
       <Card>
         <CardHeader>
           <CardTitle>采集运行</CardTitle>
@@ -880,7 +994,7 @@ function SystemPanel({ runs, errors }: { runs: Row[]; errors: Row[] }) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {runs.map((run) => (
+              {paginatedRuns.map((run) => (
                 <TableRow key={String(run.id)}>
                   <TableCell className="whitespace-nowrap pl-6 text-xs">
                     {formatDate(String(run.started_at), true)}
@@ -896,6 +1010,13 @@ function SystemPanel({ runs, errors }: { runs: Row[]; errors: Row[] }) {
               ))}
             </TableBody>
           </Table>
+          <DataTablePagination
+            page={safePage}
+            pageSize={pageSize}
+            totalItems={runs.length}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
         </CardContent>
       </Card>
       <Card>
@@ -906,7 +1027,7 @@ function SystemPanel({ runs, errors }: { runs: Row[]; errors: Row[] }) {
           </CardTitle>
           <CardDescription>{errors.length} 条近期记录</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-4">
           {errors.length ? (
             errors.map((error) => (
               <div className="rounded-md border p-3" key={String(error.id)}>
@@ -957,14 +1078,19 @@ export function DashboardConsole({
   errors: Row[];
 }) {
   const [view, setView] = useState<View>("overview");
+  const mainRef = useRef<HTMLElement>(null);
+  function changeView(nextView: View) {
+    setView(nextView);
+    mainRef.current?.scrollTo({ top: 0 });
+  }
   return (
     <TooltipProvider delayDuration={250}>
       <div className="min-w-[1180px] bg-background text-foreground">
         <div className="flex h-screen overflow-hidden">
-          <Rail view={view} setView={setView} username={username} />
+          <Rail view={view} setView={changeView} username={username} />
           <section className="flex min-w-0 flex-1 flex-col">
             <PageHeader view={view} lastRun={summary.latestRunAt} />
-            <main className="flex-1 overflow-y-auto bg-muted/20 p-6">
+            <main ref={mainRef} className="flex-1 overflow-y-auto bg-muted/20 p-6">
               {view === "overview" ? (
                 <OverviewPanel summary={summary} accountPerformance={accountPerformance} videos={videos} />
               ) : view === "trends" ? (
