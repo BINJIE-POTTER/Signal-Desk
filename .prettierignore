@@ -1,0 +1,6 @@
+.next
+node_modules
+data
+artifacts
+playwright-profile
+package-lock.json

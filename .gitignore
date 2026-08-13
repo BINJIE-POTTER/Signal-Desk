@@ -1,0 +1,12 @@
+node_modules/
+.next/
+.env*
+!.env.example
+data/*.db
+data/*.db-*
+data/backups/
+artifacts/
+playwright-profile/
+npm-debug.log*
+.DS_Store
+*.tsbuildinfo
