@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { Activity, Eye, ShieldCheck } from "lucide-react";
-import { AppLogo } from "@/components/app-logo";
-import { LoginForm } from "@/components/login-form";
+import { AppLogo } from "@/components/layout/app-logo";
+import { LoginForm } from "@/features/auth/components/login-form";
 import { getSession } from "@/lib/auth";
 
 export default async function LoginPage() {

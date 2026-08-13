@@ -48,7 +48,7 @@ cd /Users/binjieye/Projects/douyin-crawler
 npm run collect
 ```
 
-也可以在页面右上角点击“立即采集”。如果抖音登录过期，重新执行 `npm run collect:login`。
+也可以在页面左侧进入“系统”，在“手动采集”卡片中点击“启动全量采集”并确认。界面会在已有任务运行时阻止重复启动；如果抖音登录过期，重新执行 `npm run collect:login`。
 
 采集器只读取页面渲染后公开可见的值。遇到登录挑战、验证码或系统性页面变化时会停止并记录失败，不包含绕过机制。
 

@@ -1,35 +1,10 @@
-import { DashboardConsole } from "@/components/dashboard-console";
+import { DashboardShell } from "@/features/dashboard/components/dashboard-shell";
 import { requireSession } from "@/lib/auth";
-import {
-  getAccountPerformance,
-  getDashboardSummary,
-  getErrors,
-  getRecentVideos,
-  getRunHistory,
-  getTrendData,
-  listAccounts,
-} from "@/lib/queries";
+import { getDashboardData } from "@/server/repositories/dashboard";
 
 export default async function DashboardPage() {
   const session = await requireSession();
-  const summary = getDashboardSummary();
-  const trends = getTrendData();
-  const accountPerformance = getAccountPerformance();
-  const accounts = listAccounts();
-  const videos = getRecentVideos(250);
-  const runs = getRunHistory(20);
-  const errors = getErrors(20);
+  const data = getDashboardData();
 
-  return (
-    <DashboardConsole
-      username={session.username}
-      summary={summary}
-      trends={trends}
-      accountPerformance={accountPerformance}
-      accounts={accounts}
-      videos={videos}
-      runs={runs}
-      errors={errors}
-    />
-  );
+  return <DashboardShell username={session.username} data={data} />;
 }

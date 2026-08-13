@@ -11,6 +11,7 @@ const labels: Record<string, string> = {
   unavailable: "不可访问",
   removed: "已移除",
   challenge: "验证拦截",
+  interrupted: "意外中断",
 };
 export function StatusBadge({ status }: { status: string }) {
   const variant =

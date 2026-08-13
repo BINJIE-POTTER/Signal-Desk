@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { ArrowRight, LockKeyhole, UserRound } from "lucide-react";
-import { loginAction } from "@/app/actions";
+import { loginAction } from "@/features/auth/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 

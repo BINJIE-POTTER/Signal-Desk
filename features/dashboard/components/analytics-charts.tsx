@@ -2,9 +2,8 @@
 
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
+import type { MetricDataKey, TrendTotal, VideoPoint } from "@/features/dashboard/types";
 import { formatCompact } from "@/lib/utils";
-
-export type MetricDataKey = "likes" | "collects" | "comments" | "shares";
 
 export const metricChartConfig = {
   likes: { label: "点赞", color: "hsl(var(--chart-1))" },
@@ -12,25 +11,6 @@ export const metricChartConfig = {
   comments: { label: "评论", color: "hsl(var(--chart-3))" },
   shares: { label: "分享", color: "hsl(var(--chart-4))" },
 } satisfies ChartConfig;
-
-type TrendPoint = {
-  date: string;
-  likes: number;
-  collects: number;
-  comments: number;
-  shares: number;
-};
-
-type VideoPoint = {
-  id: number;
-  title: string;
-  accountName: string;
-  publishedAt: string;
-  likes: number;
-  collects: number;
-  comments: number;
-  shares: number;
-};
 
 function shortDate(value: string) {
   return new Date(`${value}T00:00:00`).toLocaleDateString("zh-CN", { month: "numeric", day: "numeric" });
@@ -42,7 +22,7 @@ function EmptyChart({ children }: { children: string }) {
   );
 }
 
-export function HistoryChart({ data, dataKey }: { data: TrendPoint[]; dataKey: MetricDataKey }) {
+export function HistoryChart({ data, dataKey }: { data: TrendTotal[]; dataKey: MetricDataKey }) {
   const item = metricChartConfig[dataKey];
   if (!data.length) return <EmptyChart>筛选范围内暂无快照</EmptyChart>;
   if (data.length === 1) {
@@ -108,14 +88,10 @@ export function HistoryChart({ data, dataKey }: { data: TrendPoint[]; dataKey: M
 }
 
 export function VideoRankingChart({ data, dataKey }: { data: VideoPoint[]; dataKey: MetricDataKey }) {
-  const ranked = data
-    .slice()
-    .sort((left, right) => right[dataKey] - left[dataKey])
-    .slice(0, 10)
-    .map((video) => ({
-      ...video,
-      shortTitle: video.title.length > 16 ? `${video.title.slice(0, 16)}…` : video.title,
-    }));
+  const ranked = data.slice(0, 10).map((video) => ({
+    ...video,
+    shortTitle: video.title.length > 16 ? `${video.title.slice(0, 16)}…` : video.title,
+  }));
   if (!ranked.length) return <EmptyChart>筛选范围内暂无视频</EmptyChart>;
   return (
     <ChartContainer config={{ [dataKey]: metricChartConfig[dataKey] }} className="h-[360px] w-full">
@@ -153,40 +129,6 @@ export function VideoRankingChart({ data, dataKey }: { data: VideoPoint[]; dataK
           }
         />
         <Bar dataKey={dataKey} fill={`var(--color-${dataKey})`} radius={4} barSize={20} />
-      </BarChart>
-    </ChartContainer>
-  );
-}
-
-export function AccountRankingChart({ data }: { data: Array<{ nickname: string; likes: number }> }) {
-  const ranked = data.slice(0, 6).map((item) => ({
-    ...item,
-    shortName: item.nickname.length > 8 ? `${item.nickname.slice(0, 8)}…` : item.nickname,
-  }));
-  if (!ranked.length) return <EmptyChart>暂无账号数据</EmptyChart>;
-  return (
-    <ChartContainer config={{ likes: metricChartConfig.likes }} className="h-[240px] w-full">
-      <BarChart accessibilityLayer data={ranked} layout="vertical" margin={{ left: 4, right: 12 }}>
-        <CartesianGrid horizontal={false} />
-        <XAxis type="number" hide />
-        <YAxis type="category" dataKey="shortName" tickLine={false} axisLine={false} width={88} />
-        <ChartTooltip
-          cursor={{ fill: "hsl(var(--muted))" }}
-          content={
-            <ChartTooltipContent
-              labelKey="nickname"
-              formatter={(value) => (
-                <div className="flex min-w-32 items-center justify-between gap-6">
-                  <span className="text-muted-foreground">点赞</span>
-                  <span className="font-mono font-medium tabular-nums">
-                    {Number(value).toLocaleString("zh-CN")}
-                  </span>
-                </div>
-              )}
-            />
-          }
-        />
-        <Bar dataKey="likes" fill="var(--color-likes)" radius={4} barSize={18} />
       </BarChart>
     </ChartContainer>
   );

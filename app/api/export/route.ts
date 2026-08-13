@@ -1,5 +1,5 @@
 import { requireSession } from "@/lib/auth";
-import { getRecentVideos } from "@/lib/queries";
+import { getRecentVideos } from "@/server/repositories/dashboard";
 
 function csvCell(value: unknown) {
   return `"${String(value ?? "").replace(/"/g, '""')}"`;

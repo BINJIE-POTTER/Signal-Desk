@@ -2,7 +2,20 @@ import { chromium } from "playwright";
 
 const browser = await chromium.launch({ headless: true, channel: "chrome" });
 try {
-  const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+  const baseUrl = process.env.E2E_BASE_URL ?? "http://127.0.0.1:3000";
+  const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+  if (process.env.E2E_SESSION_TOKEN) {
+    await context.addCookies([
+      {
+        name: "douyin_monitor_session",
+        value: process.env.E2E_SESSION_TOKEN,
+        url: baseUrl,
+        httpOnly: true,
+        sameSite: "Strict",
+      },
+    ]);
+  }
+  const page = await context.newPage();
   const consoleErrors = [];
   const badResponses = [];
   page.on("console", (message) => {
@@ -11,7 +24,6 @@ try {
   page.on("response", (response) => {
     if (response.status() >= 400) badResponses.push(`${response.status()} ${response.url()}`);
   });
-  const baseUrl = process.env.E2E_BASE_URL ?? "http://127.0.0.1:3000";
   await page.goto(baseUrl, { waitUntil: "networkidle" });
   if (page.url().endsWith("/login")) {
     const username = process.env.E2E_USERNAME;
@@ -39,7 +51,7 @@ try {
     .first();
   await overviewTooltipTarget.hover();
   await page.getByRole("tooltip").waitFor();
-  await page.screenshot({ path: "/private/tmp/douyin-monitor-shadcn-overview.png", fullPage: true });
+  await page.screenshot({ path: "/private/tmp/douyin-monitor-shadcn-overview.png" });
 
   for (const [button, heading] of [
     ["趋势", "趋势分析"],
@@ -64,8 +76,8 @@ try {
   await page
     .locator(".recharts-wrapper")
     .last()
-    .hover({ position: { x: 700, y: 160 } });
-  await page.screenshot({ path: "/private/tmp/douyin-monitor-shadcn-trends.png", fullPage: true });
+    .hover({ position: { x: 700, y: 160 }, force: true });
+  await page.screenshot({ path: "/private/tmp/douyin-monitor-shadcn-trends.png" });
 
   await page.getByRole("button", { name: /^视频/ }).click();
   if ((await page.getByLabel("每页显示数量").textContent())?.trim() !== "50") {
@@ -75,7 +87,7 @@ try {
   await page.getByLabel("下一页").click();
   await page.getByText(/显示 51–/).waitFor();
   await page.getByLabel("上一页").click();
-  await page.getByPlaceholder("搜索视频标题或账号").fill("峰哥");
+  await page.getByPlaceholder("搜索标题或账号").fill("峰哥");
   await page.getByLabel("视频排序").click();
   await page.getByRole("option", { name: "按点赞" }).click();
   await page.getByLabel("筛选视频账号").click();
@@ -84,7 +96,7 @@ try {
   await page.getByRole("option", { name: "25" }).click();
   await page.getByText(/显示 1–21，共 21 条|显示 1–25/).waitFor();
   await page.locator("main").evaluate((element) => element.scrollTo({ top: 0 }));
-  await page.screenshot({ path: "/private/tmp/douyin-monitor-shadcn-videos.png", fullPage: true });
+  await page.screenshot({ path: "/private/tmp/douyin-monitor-shadcn-videos.png" });
 
   await page.getByRole("button", { name: /^账号/ }).click();
   await page.getByPlaceholder("https://www.douyin.com/user/...").waitFor();
@@ -97,6 +109,13 @@ try {
     await page.getByRole("alertdialog").waitFor();
     await page.getByRole("button", { name: "取消" }).click();
   }
+
+  await page.getByRole("button", { name: /^系统/ }).click();
+  await page.getByRole("button", { name: "启动全量采集" }).click();
+  const collectorDialog = page.getByRole("alertdialog");
+  await collectorDialog.waitFor();
+  await collectorDialog.getByText("任务可能持续数十分钟").waitFor();
+  await page.getByRole("button", { name: "取消" }).click();
 
   const overflow = await page.evaluate(() => {
     const root = document.documentElement;

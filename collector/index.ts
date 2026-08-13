@@ -178,6 +178,13 @@ async function captureVideo(page: Page, video: VideoRow) {
       page,
     });
     getDb()
+      .prepare(
+        `INSERT OR IGNORE INTO metric_snapshots
+          (video_id, crawl_run_id, capture_status, quality_flags)
+         VALUES (?, ?, 'failed', '["capture_error"]')`,
+      )
+      .run(video.id, runId);
+    getDb()
       .prepare("UPDATE videos SET consecutive_failures = consecutive_failures + 1 WHERE id = ?")
       .run(video.id);
     return "failed";
@@ -239,9 +246,13 @@ async function processAccount(context: BrowserContext, account: AccountRow) {
 }
 
 async function main() {
-  const leaseDeadline = Date.now() + 30 * 60_000;
+  const requestedAccountId = Number(process.env.COLLECTOR_ACCOUNT_ID || 0);
   while (!acquireLease()) {
-    if (Date.now() >= leaseDeadline) throw new Error("Timed out waiting for the active collector lease.");
+    if (!requestedAccountId) throw new Error("A collector task is already running.");
+    const requestedAccount = getDb()
+      .prepare("SELECT last_scan_status status FROM accounts WHERE id = ? AND enabled = 1")
+      .get(requestedAccountId) as { status: string } | undefined;
+    if (!requestedAccount || requestedAccount.status !== "pending") return;
     await new Promise<void>((resolve) => setTimeout(resolve, 10_000));
   }
   const started = getDb()
@@ -263,7 +274,6 @@ async function main() {
     });
     const initialPages = context.pages();
     await Promise.all(initialPages.map((page) => page.close()));
-    const requestedAccountId = Number(process.env.COLLECTOR_ACCOUNT_ID || 0);
     let accounts = (
       requestedAccountId
         ? getDb()
