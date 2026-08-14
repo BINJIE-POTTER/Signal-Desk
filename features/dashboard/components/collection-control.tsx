@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { CardDescription, CardTitle } from "@/components/ui/card";
 import type { DashboardSummary } from "@/features/dashboard/types";
 import { formatDate } from "@/lib/utils";
 
@@ -34,8 +34,8 @@ function StartButton() {
 export function CollectionControl({ summary }: { summary: DashboardSummary }) {
   const running = summary.collectorRunning;
   return (
-    <Card className="border-primary/20 bg-primary/[0.025]">
-      <CardHeader className="flex-row items-start justify-between space-y-0">
+    <section className="rounded-lg border border-primary/30 bg-primary/[0.025]">
+      <div className="flex items-start justify-between border-b p-6">
         <div>
           <CardTitle>手动采集</CardTitle>
           <CardDescription className="mt-1">
@@ -47,8 +47,8 @@ export function CollectionControl({ summary }: { summary: DashboardSummary }) {
         ) : (
           <StatusBadge status={summary.latestRunStatus} />
         )}
-      </CardHeader>
-      <CardContent className="flex items-center justify-between">
+      </div>
+      <div className="flex items-center justify-between p-6">
         <div className="flex items-center gap-6 text-sm">
           <span className="flex items-center gap-2 text-muted-foreground">
             <Clock3 className="size-4" />
@@ -84,7 +84,7 @@ export function CollectionControl({ summary }: { summary: DashboardSummary }) {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-      </CardContent>
-    </Card>
+      </div>
+    </section>
   );
 }

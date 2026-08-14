@@ -69,8 +69,8 @@ export function AccountsPanel({
   const pagination = usePagination(accounts.length);
   const rows = pagination.slice(accounts);
   return (
-    <div className="space-y-6">
-      <Card>
+    <Card>
+      <section className="border-b">
         <CardHeader>
           <CardTitle>添加账号</CardTitle>
           <CardDescription>
@@ -86,8 +86,8 @@ export function AccountsPanel({
             </Button>
           </form>
         </CardContent>
-      </Card>
-      <Card>
+      </section>
+      <section>
         <CardHeader>
           <CardTitle>全部账号</CardTitle>
           <CardDescription>{accounts.length} 个账号配置</CardDescription>
@@ -157,7 +157,7 @@ export function AccountsPanel({
           </Table>
           <DataTablePagination {...pagination.paginationProps} />
         </CardContent>
-      </Card>
-    </div>
+      </section>
+    </Card>
   );
 }

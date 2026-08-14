@@ -73,6 +73,23 @@ try {
   await page.getByRole("tab", { name: "视频排行" }).click();
   await page.getByLabel("筛选账号").click();
   await page.getByRole("option").nth(1).click();
+  const rankingChart = page.locator(".recharts-wrapper").last();
+  const titleLayout = await rankingChart.evaluate((chart) => {
+    const chartBounds = chart.getBoundingClientRect();
+    const labels = [...chart.querySelectorAll(".recharts-yAxis .recharts-cartesian-axis-tick text")];
+    return {
+      chartLeft: chartBounds.left,
+      labelLefts: labels.map((label) => label.getBoundingClientRect().left),
+      lineCounts: labels.map((label) => label.querySelectorAll("tspan").length),
+    };
+  });
+  if (!titleLayout.labelLefts.length) throw new Error("Ranking chart must render video title labels");
+  if (titleLayout.labelLefts.some((left) => left < titleLayout.chartLeft)) {
+    throw new Error(`Ranking title overflow: ${JSON.stringify(titleLayout)}`);
+  }
+  if (titleLayout.lineCounts.some((count) => count < 1 || count > 2)) {
+    throw new Error(`Ranking titles must use one or two lines: ${JSON.stringify(titleLayout)}`);
+  }
   await page
     .locator(".recharts-wrapper")
     .last()
@@ -90,6 +107,10 @@ try {
   await page.getByPlaceholder("搜索标题或账号").fill("峰哥");
   await page.getByLabel("视频排序").click();
   await page.getByRole("option", { name: "按点赞" }).click();
+  await page.getByLabel("排序方向：降序").click();
+  await page.getByText("当前按点赞升序排列").waitFor();
+  await page.getByRole("button", { name: /点赞，当前升序，点击按降序排列/ }).click();
+  await page.getByText("当前按点赞降序排列").waitFor();
   await page.getByLabel("筛选视频账号").click();
   await page.getByRole("option").nth(1).click();
   await page.getByLabel("每页显示数量").click();
@@ -100,6 +121,7 @@ try {
 
   await page.getByRole("button", { name: /^账号/ }).click();
   await page.getByPlaceholder("https://www.douyin.com/user/...").waitFor();
+  await page.screenshot({ path: "/private/tmp/douyin-monitor-shadcn-accounts.png" });
   if (process.env.E2E_EXPECT_ACCOUNT === "1") {
     await page.getByRole("button", { name: "暂停", exact: true }).first().waitFor();
     await page
@@ -116,6 +138,7 @@ try {
   await collectorDialog.waitFor();
   await collectorDialog.getByText("任务可能持续数十分钟").waitFor();
   await page.getByRole("button", { name: "取消" }).click();
+  await page.screenshot({ path: "/private/tmp/douyin-monitor-shadcn-system.png" });
 
   const overflow = await page.evaluate(() => {
     const root = document.documentElement;

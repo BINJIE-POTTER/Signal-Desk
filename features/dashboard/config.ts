@@ -27,7 +27,7 @@ export const dashboardNavigation: Array<{
 
 export const dashboardTitles: Record<DashboardView, [string, string]> = {
   overview: ["数据总览", "查看当前规模、数据质量和表现最好的视频"],
-  trends: ["趋势分析", "按账号、发布时间和指标比较视频表现"],
+  trends: ["趋势分析", "按采集日期对比四项指标，并比较视频与账号表现"],
   accounts: ["跟踪账号", "添加、暂停或移除公开账号"],
   videos: ["视频明细", "搜索、筛选和排序最近 90 天的视频"],
   system: ["采集系统", "启动采集并检查任务运行情况和异常记录"],

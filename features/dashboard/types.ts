@@ -1,8 +1,15 @@
 export type DashboardView = "overview" | "trends" | "accounts" | "videos" | "system";
 export type MetricDataKey = "likes" | "collects" | "comments" | "shares";
+export const METRIC_DATA_KEYS = [
+  "likes",
+  "collects",
+  "comments",
+  "shares",
+] as const satisfies readonly MetricDataKey[];
 export type MetricKey = "like" | "collect" | "comment" | "share";
 export type PeriodDays = 30 | 60 | 90;
 export type VideoSortKey = MetricDataKey | "publishedAt";
+export type SortDirection = "asc" | "desc";
 
 export type DashboardSummary = {
   enabledAccounts: number;
@@ -76,6 +83,15 @@ export type VideoPoint = {
   title: string;
   accountName: string;
   publishedAt: string;
+  likes: number;
+  collects: number;
+  comments: number;
+  shares: number;
+};
+
+export type AccountMetricPoint = {
+  accountName: string;
+  videoCount: number;
   likes: number;
   collects: number;
   comments: number;

@@ -1,7 +1,6 @@
 import { RotateCcw } from "lucide-react";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 export function FilterField({ label, children }: { label: string; children: ReactNode }) {
@@ -46,9 +45,5 @@ export function FilterBar({
   );
 
   if (embedded) return content;
-  return (
-    <Card>
-      <CardContent className="p-0">{content}</CardContent>
-    </Card>
-  );
+  return <div className="rounded-lg border bg-card">{content}</div>;
 }

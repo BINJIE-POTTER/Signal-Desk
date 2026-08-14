@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, ChevronsUpDown, Download, Search } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronsUpDown, Download, Search } from "lucide-react";
 import { DataTablePagination } from "@/components/data-table/data-table-pagination";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
@@ -20,10 +20,50 @@ import { FilterBar, FilterField } from "@/features/dashboard/components/filter-b
 import { PeriodFilter } from "@/features/dashboard/components/period-filter";
 import { usePagination } from "@/features/dashboard/hooks/use-pagination";
 import { useVideoFilters } from "@/features/dashboard/hooks/use-video-filters";
-import type { Account, MetricDataKey, VideoRecord, VideoSortKey } from "@/features/dashboard/types";
-import { formatDate } from "@/lib/utils";
+import type {
+  Account,
+  MetricDataKey,
+  SortDirection,
+  VideoRecord,
+  VideoSortKey,
+} from "@/features/dashboard/types";
+import { cn, formatDate } from "@/lib/utils";
 
 const metricKeys: MetricDataKey[] = ["likes", "collects", "comments", "shares"];
+
+function SortButton({
+  activeSortKey,
+  direction,
+  label,
+  onSort,
+  sortKey,
+  align = "left",
+}: {
+  activeSortKey: VideoSortKey;
+  direction: SortDirection;
+  label: string;
+  onSort: (sortKey: VideoSortKey) => void;
+  sortKey: VideoSortKey;
+  align?: "left" | "right";
+}) {
+  const isActive = activeSortKey === sortKey;
+  const nextDirection = isActive && direction === "desc" ? "升序" : "降序";
+  const DirectionIcon = isActive ? (direction === "desc" ? ArrowDown : ArrowUp) : ArrowUpDown;
+
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="sm"
+      className={cn("-mx-3 h-8 px-3 text-muted-foreground", align === "right" && "ml-auto -mr-3")}
+      aria-label={`${label}，当前${isActive ? (direction === "desc" ? "降序" : "升序") : "未排序"}，点击按${nextDirection}排列`}
+      onClick={() => onSort(sortKey)}
+    >
+      {label}
+      <DirectionIcon className={cn(!isActive && "opacity-50")} />
+    </Button>
+  );
+}
 
 export function VideoTable({ videos, accounts }: { videos: VideoRecord[]; accounts: Account[] }) {
   const filters = useVideoFilters(videos);
@@ -36,6 +76,10 @@ export function VideoTable({ videos, accounts }: { videos: VideoRecord[]; accoun
       pagination.resetPage();
     };
   const sortLabel = filters.sortKey === "publishedAt" ? "发布时间" : metricChartConfig[filters.sortKey].label;
+  const sortBy = (sortKey: VideoSortKey) => {
+    filters.toggleSort(sortKey);
+    pagination.resetPage();
+  };
 
   return (
     <Card>
@@ -98,22 +142,42 @@ export function VideoTable({ videos, accounts }: { videos: VideoRecord[]; accoun
             </Select>
           </FilterField>
           <FilterField label="排序">
-            <Select
-              value={filters.sortKey}
-              onValueChange={(value) => update(filters.setSortKey)(value as VideoSortKey)}
-            >
-              <SelectTrigger className="w-36" aria-label="视频排序">
-                <ChevronsUpDown className="mr-2 size-4 text-muted-foreground" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="publishedAt">按发布时间</SelectItem>
-                <SelectItem value="likes">按点赞</SelectItem>
-                <SelectItem value="collects">按收藏</SelectItem>
-                <SelectItem value="comments">按评论</SelectItem>
-                <SelectItem value="shares">按分享</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex gap-2">
+              <Select
+                value={filters.sortKey}
+                onValueChange={(value) => update(filters.setSortKey)(value as VideoSortKey)}
+              >
+                <SelectTrigger className="w-36" aria-label="视频排序">
+                  <ChevronsUpDown className="mr-2 size-4 text-muted-foreground" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="publishedAt">按发布时间</SelectItem>
+                  <SelectItem value="likes">按点赞</SelectItem>
+                  <SelectItem value="collects">按收藏</SelectItem>
+                  <SelectItem value="comments">按评论</SelectItem>
+                  <SelectItem value="shares">按分享</SelectItem>
+                </SelectContent>
+              </Select>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    aria-label={`排序方向：${filters.sortDirection === "desc" ? "降序" : "升序"}`}
+                    onClick={() =>
+                      update(filters.setSortDirection)(filters.sortDirection === "desc" ? "asc" : "desc")
+                    }
+                  >
+                    {filters.sortDirection === "desc" ? <ArrowDown /> : <ArrowUp />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  点击切换为{filters.sortDirection === "desc" ? "升序" : "降序"}
+                </TooltipContent>
+              </Tooltip>
+            </div>
           </FilterField>
         </FilterBar>
       </div>
@@ -122,11 +186,25 @@ export function VideoTable({ videos, accounts }: { videos: VideoRecord[]; accoun
           <TableHeader>
             <TableRow>
               <TableHead className="w-[42%] pl-6">视频</TableHead>
-              <TableHead>发布</TableHead>
+              <TableHead>
+                <SortButton
+                  label="发布"
+                  sortKey="publishedAt"
+                  activeSortKey={filters.sortKey}
+                  direction={filters.sortDirection}
+                  onSort={sortBy}
+                />
+              </TableHead>
               {metricKeys.map((key) => (
                 <TableHead key={key} className="text-right">
-                  {metricChartConfig[key].label}
-                  {filters.sortKey === key ? <ChevronDown className="ml-1 inline size-3" /> : null}
+                  <SortButton
+                    label={metricChartConfig[key].label}
+                    sortKey={key}
+                    activeSortKey={filters.sortKey}
+                    direction={filters.sortDirection}
+                    align="right"
+                    onSort={sortBy}
+                  />
                 </TableHead>
               ))}
               <TableHead className="pr-6">状态</TableHead>
@@ -185,7 +263,10 @@ export function VideoTable({ videos, accounts }: { videos: VideoRecord[]; accoun
             )}
           </TableBody>
         </Table>
-        <div className="border-t px-6 py-4 text-xs text-muted-foreground">当前按{sortLabel}降序排列</div>
+        <div className="border-t px-6 py-4 text-xs text-muted-foreground">
+          当前按{sortLabel}
+          {filters.sortDirection === "desc" ? "降序" : "升序"}排列
+        </div>
         <DataTablePagination {...pagination.paginationProps} />
       </CardContent>
     </Card>

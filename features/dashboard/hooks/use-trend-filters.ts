@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import {
+  aggregateAccountMetrics,
   aggregateTrendSnapshots,
   filterAndSortVideos,
   sumVideoMetrics,
@@ -17,6 +18,7 @@ export function useTrendFilters(videos: VideoRecord[], snapshots: TrendSnapshot[
     const videoPoints = filterAndSortVideos(videos, { accountId, period, sortKey: metric }).map(toVideoPoint);
     return {
       videos: videoPoints,
+      accounts: aggregateAccountMetrics(videoPoints),
       trends: aggregateTrendSnapshots(snapshots, { accountId, period }),
       totals: sumVideoMetrics(videoPoints),
       leadingVideo: videoPoints[0],

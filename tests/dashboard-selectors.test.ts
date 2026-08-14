@@ -1,6 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { aggregateTrendSnapshots, filterAndSortVideos } from "@/features/dashboard/selectors";
+import {
+  aggregateAccountMetrics,
+  aggregateTrendSnapshots,
+  filterAndSortVideos,
+  rankByMetric,
+  splitVideoTitle,
+  toTrendDeltas,
+  toVideoPoint,
+} from "@/features/dashboard/selectors";
 import type { TrendSnapshot, VideoRecord } from "@/features/dashboard/types";
 
 const now = Date.now();
@@ -47,6 +55,28 @@ test("filters videos once by account, period, status and query before sorting", 
   );
 });
 
+test("sorts videos in either direction", () => {
+  const videos = [video({ id: 1, likes: 20 }), video({ id: 2, likes: 50 })];
+  const filters = { accountId: "all", period: 90 as const, sortKey: "likes" as const };
+
+  assert.deepEqual(
+    filterAndSortVideos(videos, { ...filters, sortDirection: "desc" }).map((item) => item.id),
+    [2, 1],
+  );
+  assert.deepEqual(
+    filterAndSortVideos(videos, { ...filters, sortDirection: "asc" }).map((item) => item.id),
+    [1, 2],
+  );
+});
+
+test("splits long chart titles into at most two bounded lines", () => {
+  const lines = splitVideoTitle("这是一个非常非常长的视频标题用于验证不会再从柱状图左侧溢出");
+
+  assert.equal(lines.length, 2);
+  assert.match(lines[1], /…$/);
+  assert.ok(lines.every((line) => Array.from(line).length <= 12));
+});
+
 test("aggregates one trend row per date after applying account and publish-period filters", () => {
   const base: TrendSnapshot = {
     date: "2026-08-10",
@@ -69,4 +99,33 @@ test("aggregates one trend row per date after applying account and publish-perio
   );
 
   assert.deepEqual(result, [{ date: "2026-08-10", likes: 30, collects: 10, comments: 4, shares: 2 }]);
+});
+
+test("computes week-over-week trend deltas and keeps negative changes", () => {
+  const totals = [
+    { date: "2026-08-03", likes: 10, collects: 4, comments: 2, shares: 1 },
+    { date: "2026-08-10", likes: 40, collects: 9, comments: 2, shares: 0 },
+  ];
+
+  assert.deepEqual(toTrendDeltas(totals), [
+    { date: "2026-08-10", likes: 30, collects: 5, comments: 0, shares: -1 },
+  ]);
+  assert.deepEqual(toTrendDeltas(totals.slice(0, 1)), []);
+});
+
+test("aggregates and ranks account metrics from filtered videos", () => {
+  const videos = [
+    toVideoPoint(video({ id: 1, accountName: "甲", likes: 10, collects: 2, comments: 1, shares: 0 })),
+    toVideoPoint(video({ id: 2, accountName: "甲", likes: 5, collects: 1, comments: 1, shares: 1 })),
+    toVideoPoint(video({ id: 3, accountName: "乙", likes: 40, collects: 3, comments: 0, shares: 2 })),
+  ];
+
+  assert.deepEqual(aggregateAccountMetrics(videos), [
+    { accountName: "甲", videoCount: 2, likes: 15, collects: 3, comments: 2, shares: 1 },
+    { accountName: "乙", videoCount: 1, likes: 40, collects: 3, comments: 0, shares: 2 },
+  ]);
+  assert.deepEqual(
+    rankByMetric(aggregateAccountMetrics(videos), "likes").map((item) => item.accountName),
+    ["乙", "甲"],
+  );
 });

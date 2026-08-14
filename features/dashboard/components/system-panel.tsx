@@ -72,28 +72,30 @@ export function SystemPanel({
             </CardTitle>
             <CardDescription>{errors.length} 条近期记录</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent>
             {errors.length ? (
-              errors.map((error) => (
-                <div className="rounded-lg border p-3" key={error.id}>
-                  <div className="flex items-center justify-between gap-2">
-                    <Badge variant="outline" className="max-w-48 truncate">
-                      {error.category}
-                    </Badge>
-                    <span className="shrink-0 text-xs text-muted-foreground">
-                      {formatDate(error.createdAt)}
-                    </span>
-                  </div>
-                  {error.accountName ? (
-                    <div className="mt-2">
-                      <AccountBadge name={error.accountName} />
+              <div className="divide-y">
+                {errors.map((error) => (
+                  <div className="py-4 first:pt-0 last:pb-0" key={error.id}>
+                    <div className="flex items-center justify-between gap-2">
+                      <Badge variant="outline" className="max-w-48 truncate">
+                        {error.category}
+                      </Badge>
+                      <span className="shrink-0 text-xs text-muted-foreground">
+                        {formatDate(error.createdAt)}
+                      </span>
                     </div>
-                  ) : null}
-                  <TextWithTooltip className="mt-2 line-clamp-3 block text-xs leading-5 text-muted-foreground">
-                    {error.message}
-                  </TextWithTooltip>
-                </div>
-              ))
+                    {error.accountName ? (
+                      <div className="mt-2">
+                        <AccountBadge name={error.accountName} />
+                      </div>
+                    ) : null}
+                    <TextWithTooltip className="mt-2 line-clamp-3 block text-xs leading-5 text-muted-foreground">
+                      {error.message}
+                    </TextWithTooltip>
+                  </div>
+                ))}
+              </div>
             ) : (
               <p className="py-10 text-center text-sm text-muted-foreground">暂无异常</p>
             )}

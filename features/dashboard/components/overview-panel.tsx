@@ -27,27 +27,25 @@ function MetricCards({
   totals: ReturnType<typeof sumVideoMetrics>;
 }) {
   return (
-    <div className="grid grid-cols-4 gap-6">
+    <div className="grid grid-cols-4 divide-x rounded-lg border bg-card">
       {metricDefinitions.map(({ key, dataKey, label, icon: Icon, help }) => (
-        <Card key={key}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="flex items-center gap-1.5 text-sm font-medium">
+        <div className="p-6" key={key}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-sm font-medium">
               {label}
               <InfoTooltip label={help}>
                 <Info className="size-3.5" />
               </InfoTooltip>
-            </CardTitle>
+            </div>
             <Icon className="size-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold tabular-nums">{formatCompact(totals[dataKey])}</div>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {summary.hasComparison
-                ? `${formatDelta(summary.deltas[key])} 较上次采集日期`
-                : "首次采集基线，等待下次对比"}
-            </p>
-          </CardContent>
-        </Card>
+          </div>
+          <div className="mt-3 text-2xl font-bold tabular-nums">{formatCompact(totals[dataKey])}</div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {summary.hasComparison
+              ? `${formatDelta(summary.deltas[key])} 较上次采集日期`
+              : "首次采集基线，等待下次对比"}
+          </p>
+        </div>
       ))}
     </div>
   );
@@ -62,7 +60,7 @@ function TopVideoList({ videos }: { videos: VideoPoint[] }) {
     <div className="divide-y">
       {topVideos.map((video, index) => (
         <div className="flex items-center gap-4 py-3 first:pt-0 last:pb-0" key={video.id}>
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-sm font-semibold text-primary">
+          <div className="flex size-8 shrink-0 items-center justify-center border-r text-sm font-semibold text-primary">
             {index + 1}
           </div>
           <div className="min-w-0 flex-1">
@@ -113,67 +111,69 @@ export function OverviewPanel({
             <TopVideoList videos={videoPoints} />
           </CardContent>
         </Card>
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>采集状态</CardTitle>
-              <CardDescription>最近一次任务的数据可用率</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-end justify-between">
-                <p className="text-3xl font-bold tabular-nums">{summary.successRate}%</p>
-                <StatusBadge status={summary.latestRunStatus} />
-              </div>
-              <Progress value={summary.successRate} className="mt-4" />
-              <div className="mt-6 grid grid-cols-3 gap-4 border-t pt-4 text-center">
-                <div>
-                  <p className="font-semibold tabular-nums">{summary.enabledAccounts}</p>
-                  <p className="text-xs text-muted-foreground">账号</p>
+        <Card>
+          <div className="grid h-full grid-rows-2 divide-y">
+            <section>
+              <CardHeader>
+                <CardTitle>采集状态</CardTitle>
+                <CardDescription>最近一次任务的数据可用率</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-end justify-between">
+                  <p className="text-3xl font-bold tabular-nums">{summary.successRate}%</p>
+                  <StatusBadge status={summary.latestRunStatus} />
                 </div>
-                <div>
-                  <p className="font-semibold tabular-nums">{summary.trackedVideos}</p>
-                  <p className="text-xs text-muted-foreground">视频</p>
-                </div>
-                <div>
-                  <p className="font-semibold tabular-nums">{summary.newVideos}</p>
-                  <p className="text-xs text-muted-foreground">新发现</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>本次观察</CardTitle>
-              <CardDescription>
-                {strongestAccount ? `${strongestAccount.nickname} 当前账号点赞领先` : "等待账号数据"}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {deltaItems.slice(0, 3).map((item) => {
-                const positive = item.delta >= 0;
-                const DeltaIcon = positive ? ArrowUpRight : ArrowDownRight;
-                return (
-                  <div className="flex items-center justify-between" key={item.key}>
-                    <span className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <item.icon className="size-4" />
-                      {item.label}
-                    </span>
-                    <span
-                      className={
-                        positive
-                          ? "flex items-center gap-1 text-sm font-medium text-success"
-                          : "flex items-center gap-1 text-sm font-medium text-destructive"
-                      }
-                    >
-                      <DeltaIcon className="size-4" />
-                      {summary.hasComparison ? formatDelta(item.delta) : "等待对比"}
-                    </span>
+                <Progress value={summary.successRate} className="mt-4" />
+                <div className="mt-6 grid grid-cols-3 gap-4 border-t pt-4 text-center">
+                  <div>
+                    <p className="font-semibold tabular-nums">{summary.enabledAccounts}</p>
+                    <p className="text-xs text-muted-foreground">账号</p>
                   </div>
-                );
-              })}
-            </CardContent>
-          </Card>
-        </div>
+                  <div>
+                    <p className="font-semibold tabular-nums">{summary.trackedVideos}</p>
+                    <p className="text-xs text-muted-foreground">视频</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold tabular-nums">{summary.newVideos}</p>
+                    <p className="text-xs text-muted-foreground">新发现</p>
+                  </div>
+                </div>
+              </CardContent>
+            </section>
+            <section>
+              <CardHeader>
+                <CardTitle>本次观察</CardTitle>
+                <CardDescription>
+                  {strongestAccount ? `${strongestAccount.nickname} 当前账号点赞领先` : "等待账号数据"}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {deltaItems.slice(0, 3).map((item) => {
+                  const positive = item.delta >= 0;
+                  const DeltaIcon = positive ? ArrowUpRight : ArrowDownRight;
+                  return (
+                    <div className="flex items-center justify-between" key={item.key}>
+                      <span className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <item.icon className="size-4" />
+                        {item.label}
+                      </span>
+                      <span
+                        className={
+                          positive
+                            ? "flex items-center gap-1 text-sm font-medium text-success"
+                            : "flex items-center gap-1 text-sm font-medium text-destructive"
+                        }
+                      >
+                        <DeltaIcon className="size-4" />
+                        {summary.hasComparison ? formatDelta(item.delta) : "等待对比"}
+                      </span>
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </section>
+          </div>
+        </Card>
       </div>
     </div>
   );
